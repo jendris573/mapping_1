@@ -25,26 +25,136 @@ editor_options:
   mode: gfm
 ---
 
-```{r setup, include=FALSE}
+```{r libraries, include=FALSE}
+library(tidyverse)
+library(readxl)
+library(knitr)
+library(ggplot2)
+library(ggfortify)
+library(plotly)
+library(leaflet)
+library(OpenStreetMap)
+library(sf)
+
+```
+
+```{r set up, include= FALSE, echo= FALSE, warning= FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+state <- map_data("state") #load in states
+county <- map_data("county")
+TN_point <- data.frame("x" = -87.3385, "y" = 36.5701)
+AL_point <- data.frame("x" = -87.4748, "y" = 33.1915)
+IN_point <- data.frame("x" = -86.4065, "y" = 39.0451) 
+MI_point <- data.frame("x" = -84.0866, "y" = 42.3241)
+
+AL <- county %>%
+  filter(region =="alabama")
+AL_co <-  county %>%
+  filter(region =="alabama") %>%
+  filter(subregion == "tuscaloosa")
+
+TN <- county %>%
+  filter(region =="tennessee")
+TN_co <- county %>% 
+  filter(region=="tennessee") %>% 
+  filter(subregion=="montgomery")
+
+IN <- county %>%
+  filter(region =="indiana")
+IN_co <-  county %>%
+  filter(region =="indiana") %>%
+  filter(subregion == "monroe")
+
+MI <- county %>%
+  filter(region=='michigan')
+MI_co <- county %>%
+  filter(region=='michigan') %>%
+  filter(subregion=='washtenaw')
+
+```
+## Background
+To evaluate any potential differences in heating tolerance among different populations, I sampled along a latitudinal gradient from Tuscaloosa, Al to Ann Arbor, MI.
+
+## Static map
+My sample sites can be seen in this static map.
+```{r static map, echo=FALSE}
+ggplot() + 
+  geom_polygon(data = state, aes(x=long, y = lat, group = group),
+               fill = "aliceblue", color="black") + 
+  geom_polygon(data = TN, aes(x=long, y = lat, group = group),
+               fill = "lightgrey", color="black") + 
+  geom_polygon(data = TN_co, aes(x=long, y = lat, group = group),
+               fill = "red", color="black") + 
+  geom_polygon(data = AL, aes(x=long, y = lat, group = group),
+               fill = "lightgrey", color="black") +
+  geom_polygon(data = AL_co, aes(x=long, y = lat, group = group),
+               fill = "darksalmon", color="black") + 
+  geom_polygon(data = IN, aes(x=long, y = lat, group = group),
+               fill = "lightgrey", color="black") + 
+  geom_polygon(data = IN_co, aes(x=long, y = lat, group = group),
+               fill = "darksalmon", color="black") + 
+   geom_polygon(data = MI, aes(x=long, y = lat, group = group),
+                fill = "lightgrey", color="black") + 
+  geom_polygon(data = MI_co, aes(x=long, y = lat, group = group),
+                        fill = "darksalmon", color="black") + 
+  geom_point(data = TN_point, aes(x=x,y=y), color="white") +
+  geom_point(data = IN_point, aes(x=x,y=y), color="white") +
+  geom_point(data = AL_point, aes(x=x,y=y), color="white") +
+  geom_point(data = MI_point, aes(x=x,y=y), color="white") +
+  coord_fixed(xlim = c(-91, -81),  ylim = c(30, 45)) + 
+  theme(panel.border = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_rect(fill ="deepskyblue", color = "deepskyblue"))+
+  xlab("Longitude") + ylab("Latitude") + ggtitle("Latitudinal Gradient Study Sites")
 ```
 
-## R Markdown
+## Interactive map
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+And now for an interactive map of all the trees on the APSU farm that I have sampled for either freezing tolerance (orange leaf), heat tolerance (red leaf), or phenology (green leaf).
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+```{r interactive map, echo=FALSE}
+apsu_trees <- read_excel("data/tree_locs.xlsx")
 
-```{r cars}
-summary(cars)
+CampusMap <- openmap(c(36.5803,-87.3319),
+                     c(36.5600,-87.3489), type='bing')
+
+APSU <- openproj(CampusMap, projection = "+proj=longlat +ellps=WGS84 +units=m +no_defs")
+
+summer <- makeIcon(
+  iconUrl = "https://leafletjs.com/examples/custom-icons/leaf-red.png",
+  iconWidth = 38, iconHeight = 95,
+  iconAnchorX = 22, iconAnchorY = 94,
+  shadowUrl = "https://leafletjs.com/examples/custom-icons/leaf-shadow.png",
+  shadowWidth = 50, shadowHeight = 64,
+  shadowAnchorX = 4, shadowAnchorY = 62)
+
+winter <- makeIcon(
+  iconUrl = "https://leafletjs.com/examples/custom-icons/leaf-orange.png",
+  iconWidth = 38, iconHeight = 95,
+  iconAnchorX = 22, iconAnchorY = 94,
+  shadowUrl = "https://leafletjs.com/examples/custom-icons/leaf-shadow.png",
+  shadowWidth = 50, shadowHeight = 64,
+  shadowAnchorX = 4, shadowAnchorY = 62)
+
+phenology <- makeIcon(
+  iconUrl = "https://leafletjs.com/examples/custom-icons/leaf-green.png",
+  iconWidth = 38, iconHeight = 95,
+  iconAnchorX = 22, iconAnchorY = 94,
+  shadowUrl = "https://leafletjs.com/examples/custom-icons/leaf-shadow.png",
+  shadowWidth = 50, shadowHeight = 64,
+  shadowAnchorX = 4, shadowAnchorY = 62)
+
+iconSet <- iconList(summer = summer,
+                    winter = winter,
+                    phenology = phenology)
+
+leaflet(apsu_trees) %>% 
+  setView(-87.337, 36.569, zoom = 16) %>%
+  addTiles() %>% 
+  addProviderTiles(providers$Esri.WorldImagery) %>%
+  addMarkers(popup = apsu_trees$Name,
+             lng = apsu_trees$X, 
+             lat = apsu_trees$Y,
+             icon = ~iconSet[season])
 ```
-
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
