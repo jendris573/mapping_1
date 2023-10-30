@@ -158,3 +158,17 @@ leaflet(apsu_trees) %>%
              lat = apsu_trees$Y,
              icon = ~iconSet[season])
 ```
+
+
+## Did you know...{style="color:red"}
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+```{r, echo=FALSE}
+knitr::include_graphics("images/pumpkins.png", dpi = 200)
+``` 
+  
+**Americans are expected to spend $3.6 billion on Halloween candy this year.**
